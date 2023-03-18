@@ -10,11 +10,25 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
 
     <script src="/script.js"></script> <!-- Links my JavaScript file-->
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+      .form-left {
+        width: 40%;
+        float: left;
+        padding: 20px;
+      }
+      .form-right {
+        width: 60%;
+        float: left;
+        padding: 0px;
+      }
+    </style>
 
 </head>
 <body>
 
-    <div class="row g-3 align-items-center">
+    <div class="row g-3 align-items-center form-left">
         <div class="col-auto">
           <label for="inputPassword6" class="col-form-label">Course</label>
         </div>
@@ -22,80 +36,101 @@
           <input type="text" id="courseInput" class="form-control">
         </div>
         <div class="col-auto">
-            <button onclick="test()">submit</button>
+            <button class="btn btn-primary"onclick="test()">submit</button>
         </div>
-        
+        <ul id="myList"></ul>
+    </div>
+    <div class="form-right">
+      <div id="myChart" style="max-width:700px; height:400px"></div>
     </div>
 
-    <ul id="myList"></ul>
 
     <script>
+
+        google.charts.load('current',{packages:['corechart']});
+        google.charts.setOnLoadCallback(test);
+
       async function api(course, year, term){
 
-var url = 'https://www.sfu.ca/bin/wcm/course-outlines?'
+        var url = 'https://www.sfu.ca/bin/wcm/course-outlines?'
+        var data = ''
+        var url_tmp = url + year + "/" + term + course;
+        
+        data = await fetch(url_tmp);
 
-var data = ''
-var url_tmp = url + year + "/" + term + course;
+        if (data.ok){
+          return year + term
+        }
 
-data = await fetch(url_tmp);
-if (data.ok){
-  return year + term
-}
-
-}
+      }
 
 
-async function test(){
+      async function test(){
 
-let list = document.getElementById("myList");
+        let list = document.getElementById("myList");
 
-while( list.firstChild ){
-  list.removeChild( list.firstChild );
-}
+        while( list.firstChild ){
+          list.removeChild( list.firstChild );
+        }
 
-var courseInput = document.getElementById("courseInput").value;
-var course = "/"
-// var department = ""
-// var number = ""
+        var courseInput = document.getElementById("courseInput").value;
+        var course = "/"
 
-for (let i = 0; i < courseInput.length; i++){
-  if (isNaN(courseInput[i])){
-    course += courseInput[i];
-  }
-  else{
-    course = course + "/";
-    for (let j = i; j < courseInput.length; j++){
-      course += courseInput[j]
-    }
-    break;
-  }
-}
+        for (let i = 0; i < courseInput.length; i++){
+          if (isNaN(courseInput[i])){
+            course += courseInput[i];
+          }
+          else{
+            course = course + "/";
+            for (let j = i; j < courseInput.length; j++){
+              course += courseInput[j]
+            }
+            break;
+          }
+        }
 
-//var course = "/" + department + "/" + number
-var year = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023]
-var term = ["spring", "summer", "fall"]
+        //var course = "/" + department + "/" + number
+        var year = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023]
+        var term = ["spring", "summer", "fall"]
 
-var ret = []
+        var ret = []
+        var chartData = [
+          ['Term', '2020~2023', '2014~2019'],
+          ['Spring', 0, 0],
+          ['Summer', 0, 0],
+          ['Fall', 0, 0]
+        ]
 
-for (const yr of year){
-  for (const tm of term){
-    var data = await api(course,yr,tm);
-    if (data != null){
-      ret.push(data);
-    }
-  }
-}
+        for (const yr of year){
+          for (const tm of term){
+            var data = await api(course,yr,tm);
+            if (data != null){
+              ret.push(data);
+              chartData[(tm == 'spring' ? 1 : (tm == 'summer' ? 2 : 3))][(yr <= 2019) ? 2 : 1]++;
+            }
+          }
+        }
 
-console.log(ret)
+        console.log(ret)
+        console.log(chartData)
 
-ret.forEach((item) =>{
-  let li = document.createElement("li");
-  li.innerText = item;
-  list.appendChild(li);
-})
+        ret.forEach((item) =>{
+          let li = document.createElement("li");
+          li.innerText = item;
+          list.appendChild(li);
+        })
 
-//document.getElementById("output").innerHTML = 'hi';
-}
+        const data2 = google.visualization.arrayToDataTable(chartData);
+        const options = {
+          title: (courseInput ? courseInput.toUpperCase() + ' Available Terms Since 2014' : ''),
+          isStacked: true
+        };
+        const chart = new google.visualization.BarChart(document.getElementById('myChart'));
+        chart.draw(data2, options);
+
+      }
+      
+      
     </script>
     
 </body>
